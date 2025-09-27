@@ -1,0 +1,6 @@
+.gitignore
+*.txt
+*.lock
+*.yml
+*.yaml
+*.md

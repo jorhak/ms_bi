@@ -1,6 +1,24 @@
 <?php
   require 'vendor/autoload.php';
-  Flight::register('db', 'PDO', array("pgsql:host=23.23.183.202;port=5432;dbname=db_hospitalbi", 'postgres', 'postgres'));
+
+  // Validar que las variables de entorno existen
+  if (
+      !isset($_ENV['DB_HOST']) || 
+      !isset($_ENV['DB_PORT']) || 
+      !isset($_ENV['DB_NAME']) || 
+      !isset($_ENV['DB_USER']) || 
+      !isset($_ENV['DB_PASSWORD'])
+  ) {
+      die('Error: No se pudieron cargar todas las variables de entorno necesarias.');
+  }
+  // Obtener los valores de las variables
+  $db_host = $_ENV['DB_HOST'];
+  $db_port = $_ENV['DB_PORT'];
+  $db_name = $_ENV['DB_NAME'];
+  $db_user = $_ENV['DB_USER'];
+  $db_password = $_ENV['DB_PASSWORD'];
+  
+  Flight::register('db', 'PDO', array("pgsql:host=$db_host;port=$db_port;dbname=$db_name", $db_user, $db_password));
   
   Flight::route('/', function(){
       echo "hello world!";
@@ -21,14 +39,14 @@
   });
 
   Flight::route('GET /consultas/doc/@doctor/@fecha', function ($doctor,$fecha) {
-    $query = Flight::db()->prepare("SELECT id,fecha,hora,paciente FROM consulta WHERE doctor = ($doctor) and fecha = ($fecha) and diagnostico is null group by id");
+    $query = Flight::db()->prepare("SELECT id,fecha,hora,paciente FROM consulta WHERE doctor = '$doctor' and fecha = '$fecha' and diagnostico is null group by id");
     $query->execute();
     $datos = $query->fetchAll(PDO::FETCH_ASSOC);
     Flight::json($datos);
   });
 
   Flight::route('GET /consultas/pac/@paciente', function ($paciente) {
-    $query = Flight::db()->prepare("SELECT con.id,con.doctor,con.paciente,con.fecha,con.hora,r.recomendacion,con.diagnostico,med.nombre,med.cantidad,med.indicacion FROM consulta as con,receta as r,medicamento as med WHERE r.idconsulta=con.id and med.idreceta=r.id and paciente = $paciente order by con.id");
+    $query = Flight::db()->prepare("SELECT con.id,con.doctor,con.paciente,con.fecha,con.hora,r.recomendacion,con.diagnostico,med.nombre,med.cantidad,med.indicacion FROM consulta as con,receta as r,medicamento as med WHERE r.idconsulta=con.id and med.idreceta=r.id and con.paciente = '$paciente' order by con.id");
     $query->execute();
     $datos = $query->fetchAll(PDO::FETCH_ASSOC);
     Flight::json($datos);
@@ -218,7 +236,7 @@
   });
 
   Flight::route('GET /kpi1/@fechaini/@fechafin', function ($fechaini,$fechafin) {
-    $query = Flight::db()->prepare("SELECT nombre as nombre , count(nombre) as cantidad FROM medicamento as m, consulta as c,receta as r where r.idconsulta=c.id and m.idreceta=r.id and TO_DATE(fecha, 'DD-MM-YYYY') >= ($fechaini) and TO_DATE(fecha, 'DD-MM-YYYY')<= ($fechafin) and c.diagnostico is not null group by nombre order by  count(nombre) desc");
+    $query = Flight::db()->prepare("SELECT nombre as nombre , count(nombre) as cantidad FROM medicamento as m, consulta as c,receta as r where r.idconsulta=c.id and m.idreceta=r.id and TO_DATE(fecha, 'DD-MM-YYYY') >= '$fechaini' and TO_DATE(fecha, 'DD-MM-YYYY')<= '$fechafin' and c.diagnostico is not null group by nombre order by  count(nombre) desc");
     $query->execute();
     $datos = $query->fetchAll(PDO::FETCH_ASSOC);
     Flight::json($datos);
@@ -250,7 +268,7 @@
     Flight::json($datos);
   });
   Flight::route('GET /kpi5/@fechaini/@fechafin', function ($fechaini,$fechafin) {
-    $query = Flight::db()->prepare("SELECT doctor as nombre, count(doctor) as cantidad from consulta as c where TO_DATE(fecha,'DD-MM-YYYY') >= ($fechaini) and TO_DATE(fecha, 'DD-MM-YYYY')<= ($fechafin) and diagnostico is not null group by nombre");
+    $query = Flight::db()->prepare("SELECT doctor as nombre, count(doctor) as cantidad from consulta as c where TO_DATE(fecha,'DD-MM-YYYY') >= '$fechaini' and TO_DATE(fecha, 'DD-MM-YYYY')<= '$fechafin' and diagnostico is not null group by nombre");
     $query->execute();
     $datos = $query->fetchAll(PDO::FETCH_ASSOC);
     Flight::json($datos);
