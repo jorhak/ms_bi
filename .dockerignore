@@ -4,3 +4,7 @@
 *.yml
 *.yaml
 *.md
+*.sql
+Dockerfile
+docker-compose*.yml
+docker-compose*.yaml
